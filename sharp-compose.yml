@@ -1,0 +1,23 @@
+version: "3.7"
+services:
+  node:
+    image: "node:latest"
+    user: "root"
+    working_dir: /home/node/app
+    environment:
+      - NODE_ENV=debug
+    volumes:
+      - ./:/home/node/app
+    ports:
+      - target: 8080
+        published: 8080
+        protocol: tcp
+    #command: "npm install && npm start"
+    #command: "npm install express --save"
+    #command: "npm install body-parser --save"
+    #command: "npm install sharp --save"
+    #command: "npm install multer --save"
+    #command: "npm install got --save"
+    #command: "npm install --save-dev nodemon"
+    #command: "npm install color --save"
+    command: "npm start"
