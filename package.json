@@ -1,9 +1,9 @@
 {
-  "name": "docker_web_app",
+  "name": "sharp-web-resizing-images",
   "version": "1.0.0",
-  "description": "Node.js on Docker",
+  "description": "This project, titled sharp-web-resizing-images, is a Node.js application that uses the sharp library to dynamically process and scale images. The application is also configured to run in a Docker container, making it easy to deploy and scale.",
   "type": "module",
-  "author": "First Last <first.last@example.com>",
+  "author": "frankii91 <14099566+frankii91@users.noreply.github.com>",
   "main": "server.js",
   "scripts": {
     "start": "nodemon server.js"

@@ -1,74 +1,77 @@
-http://localhost:8080/one?loaderTyp=url&outputResize=1000x400&imagePath=https://i-meble.eu/images/homeslider/1488/forte-szkolne-rabaty-do-20.jpg&outputFormat=webp&resultTyp=local
+sharp-web-resizing-images
+Opis
+Repozytorium sharp-web-resizing-images zawiera kod w Node.js, który wykorzystuje bibliotekę Sharp do manipulacji obrazami. Dzięki temu kodowi można skalować, konwertować formaty obrazów i wiele więcej, wszystko to za pośrednictwem interfejsu API HTTP. Kod jest modularny i dobrze zorganizowany, co ułatwia dodawanie nowych funkcji i utrzymanie.
 
+Przykładowe zapytanie do przeskalowania obrazu:
 
+http://localhost:3000/?loaderTyp=local&imagePath=/example.jpg&outputFormat=webp&outputResize=200x200
 
-/one
-generuje tylko jedno zdjęcie
+Główne funkcje
+Parametry wejściowe
+loaderTyp: Typ źródła obrazu (lokalny, montowany, URL).
+imagePath: Ścieżka do obrazu.
+outputFormat: Format wyjściowy obrazu (jpg, webp, avif).
+outputResize: Rozmiary, do których ma być przeskalowany obraz.
+fit, position, background, kernel: Opcje do konfiguracji skalowania.
+quality, alphaQuality, lossless itd.: Opcje do konfiguracji formatów wyjściowych.
+Obsługiwane formaty
+JPEG
+WebP
+AVIF
+Obsługiwane metody skalowania
+fit: dopasowanie obrazu
+position: pozycja obrazu
+background: kolor tła
+kernel: metoda przetwarzania obrazu
+withoutEnlargement, withoutReduction: kontrola nad zmianą rozmiaru
+Zapis wyników
+Obrazy można zapisać na dysku lokalnym lub na zewnętrznym nośniku, lub też przesłać je jako strumień HTTP.
 
-### LOADER
-# dopuszczalne parametry dla /one
+Opis Repozytorium: sharp-web-resizing-images
+Opis
+Repozytorium sharp-web-resizing-images zawiera kod w Node.js, który wykorzystuje bibliotekę Sharp do manipulacji obrazami. Dzięki temu kodowi można skalować, konwertować formaty obrazów i wiele więcej, wszystko to za pośrednictwem interfejsu API HTTP. Kod jest modularny i dobrze zorganizowany, co ułatwia dodawanie nowych funkcji i utrzymanie.
 
-&loaderTyp=url
-&loaderTyp=local
-&loaderTyp=mount
+Główne funkcje
+Parametry wejściowe
+loaderTyp: Typ źródła obrazu (lokalny, montowany, URL).
+imagePath: Ścieżka do obrazu.
+outputFormat: Format wyjściowy obrazu (jpg, webp, avif).
+outputResize: Rozmiary, do których ma być przeskalowany obraz.
+fit, position, background, kernel: Opcje do konfiguracji skalowania.
+quality, alphaQuality, lossless itd.: Opcje do konfiguracji formatów wyjściowych.
+Obsługiwane formaty
+JPEG
+WebP
+AVIF
+Obsługiwane metody skalowania
+fit: dopasowanie obrazu
+position: pozycja obrazu
+background: kolor tła
+kernel: metoda przetwarzania obrazu
+withoutEnlargement, withoutReduction: kontrola nad zmianą rozmiaru
+Zapis wyników
+Obrazy można zapisać na dysku lokalnym lub na zewnętrznym nośniku, lub też przesłać je jako strumień HTTP.
+Jak używać
+Instalacja
+bash
+Copy code
+npm install
+Uruchomienie serwera
+bash
+Copy code
+npm start
+Przykład zapytania
+bash
+Copy code
+curl -GET "http://localhost:3000?loaderTyp=local&imagePath=/path/to/image&outputFormat=webp&outputResize=200x200"
+Błędy i odpowiedzi
+Kod jest zaprojektowany w taki sposób, aby jak najlepiej informować użytkownika o błędach. Możliwe są odpowiedzi takie jak:
 
-### IMAGE PARTCH / URL
-# wartosc zależna od loaderTyp jak url to:
+400 Bad Request w przypadku błędnych parametrów.
+500 Internal Server Error w przypadku błędów serwera.
 
-&imagePath=https://i-meble.eu/images/homeslider/1488/forte-szkolne-rabaty-do-20.jpg
+Uruchamianie w Dockerze:
+Projekt zawiera również plik  docker-compose, dzięki czemu jest łatwy do uruchomienia w kontenerze. To wstępna wersja pliku, ale już teraz ułatwia wdrożenie i testowanie aplikacji.
 
-# jak local lub mount to ściezka  dostęp do ścieżki musi byczamontowany w dockerze 
-
-&imagePath=/1488/forte-szkolne-rabaty-do-20.jpg
-
-### RESULT
-# co ma sie stać z zdjęciem wyjściowym 
-# local, mount, stream jak nie podamy lub podamy wartość stream to wynik będzie na ekran przeglądarki
-
-&resultTyp=local
-&resultTyp=mount
-&resultTyp=stream
-
-
-### RESIZE
-# zmiana rozdzielczosci
-# jakś rozdzielczość
-
-&outputResize=100x500
-
-# opcje związne z fit czyli dopełnieniem tła itp.
-# zgodnie z ustawieniami domyślnymi
-# tu jest opic oco i jak https://sharp.pixelplumbing.com/api-resize
-# jedno z ważniejszych wypełnienei background
-# jełśi nie podamy to domyślnie wstawi biały
-# tabela colorów rgb https://www.rapidtables.com/web/color/
-# np.rgb(255,255,255) => white, rgb(255,0,0) => red, rgb(255,255,0) => yellow, rgb(0,0,255) => blue
-&background=rgb(255,255,255)
-
-# ważny parametr to też withoutEnlargement odpowiada za to czy obraz ma nie być powiększany (jeden z wymiarów)
-# czy ma być dodawane tło (domyśłnie jest false ale dla nas wydaje siębyćdobrą opcją ustawienia na true
-# withoutEnlargement=true obraz nei bedzie powiększany nizjego maksymalna wielkosć
-# potem zostanie dodane białe tło = dal produktów obecnie mamy z tym problem jeśli rozdzielczość jest mniejsza.... ??????? 
-&withoutEnlargement=true
-
-###  OUTPUT FORMAT
-# format wyjściowy jpg, webp, avif  narazie tylko tyle zrobione
-# domyłśnei bez pdoanie teog parametru będzie jpg i innymi domyślnymi parametrami kompresji i jakości
-outputFormat=webp
-outputFormat=jpg
-outputFormat=avif
-
-### USTAWIENIA KOMPRESJI JPG, WEBP, AVIF
-# zgodnie z ustawieniami domyślnymi i opisem na 
-# https://sharp.pixelplumbing.com/api-output
-# jełśi nazwy są alternatywne u nas działają tylko główne
-# np. parametr [options.progressive] dla jpg u nas ustawiamy za pomoc apatametru w linku:
-# &progressive=true   i inne analogicznie jak mówi dokumentacja
-
-
-### wyjątki od dokumentacji
-# WEBP brak pełnej obsługi dla parametru delay  jedynie number bez array number default 100 ms
-
-
-
-
+Licencja
+MIT
