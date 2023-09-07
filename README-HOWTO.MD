@@ -1,6 +1,13 @@
 # INFO
 ## Przykłąd użcia
-### http://localhost:8080/one?loaderTyp=url&outputResize=1000x400&imagePath=https://i-meble.eu/images/homeslider/1488/forte-szkolne-rabaty-do-20.jpg&outputFormat=webp&resultTyp=local
+### http://192.168.2.33:88/one?loaderTyp=url&outputResize=1000x400&imagePath=https://i-meble.eu/images/homeslider/1488/forte-szkolne-rabaty-do-20.jpg&outputFormat=webp&resultTyp=local
+### http://192.168.2.33:88/one?fit=contain&loaderTyp=url&outputFormat=jpg&outputResize=1500x700&imagePath=https://i-meble.eu/images/homeslider/1489/santander-mozliwe-raty-0.jpg&quality=75&trellisQuantisation=1&overshootDeringing=1&optimiseScans=1&quantisationTable=1&chromaSubsampling=4:2:0
+
+## Status
+### http://192.168.2.33:88/status
+
+## Readme 
+### http://192.168.2.33:88/readme
 
 # dla jednego zdjęcia 
 ### /one?
