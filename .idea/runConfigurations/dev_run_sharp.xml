@@ -1,0 +1,30 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="dev-run-sharp" type="docker-deploy" factoryName="docker-compose.yml" server-name="Docker">
+    <deployment type="docker-compose.yml">
+      <settings>
+        <option name="envFilePath" value="" />
+        <option name="removeOrphansOnComposeDown" value="false" />
+        <option name="commandLineOptions" value="--build" />
+        <option name="services">
+          <list>
+            <option value="scharp-dev" />
+          </list>
+        </option>
+        <option name="sourceFilePath" value="sharp-compose.yml" />
+        <option name="upAbortOnContainerExit" value="true" />
+        <option name="upDetach" value="false" />
+        <option name="upForceRecreate" value="true" />
+        <option name="upRemoveOrphans" value="true" />
+      </settings>
+    </deployment>
+    <method v="2">
+      <option name="NpmBeforeRunTask" enabled="true">
+        <package-json value="$PROJECT_DIR$/package.json" />
+        <command value="install" />
+        <node-interpreter value="wsl://Ubuntu@/home/frankii91/.nvm/versions/node/v20.6.0/bin/node" />
+        <package-manager value="\home\frankii91\.nvm\versions\node\v20.6.0\bin\npm" />
+        <envs />
+      </option>
+    </method>
+  </configuration>
+</component>

@@ -1,0 +1,8 @@
+#!/bin/bash
+BUILD_VERSION=$(cat version.txt)
+
+echo "SHARP VERSION: $BUILD_VERSION"
+
+echo "--> pushing frankii91/sharp"
+docker push frankii91/sharp:latest
+docker push frankii91/sharp:$BUILD_VERSION

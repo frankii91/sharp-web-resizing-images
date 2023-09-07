@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:20.6.0-alpine
 
 WORKDIR /app
 
@@ -11,4 +11,4 @@ RUN npm install color --save
 
 COPY . .
 
-CMD ["npm", "start"]
+#CMD ["npm", "start"]
