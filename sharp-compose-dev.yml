@@ -1,0 +1,27 @@
+version: "3.7"
+services:
+  node:
+    image: "node:latest"
+    user: "root"
+    working_dir: /app
+    environment:
+      - NODE_ENV=debug
+      - SHARP_PORT=77
+      - SHARP_HOST=0.0.0.0
+      - SHARP_IMAGES_MOUNT=/mnt/images
+      - SHARP_IMAGES_RESULT=/mnt/result
+    volumes:
+      - ./:/app
+    ports:
+      - target: 77
+        published: 8080
+        protocol: tcp
+    #command: "npm install && npm start"
+    #command: "npm install express --save"
+    #command: "npm install body-parser --save"
+    #command: "npm install sharp --save"
+    #command: "npm install multer --save"
+    #command: "npm install got --save"
+    #command: "npm install --save-dev nodemon"
+    #command: "npm install color --save"
+    command: "npm start"
