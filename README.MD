@@ -1,7 +1,6 @@
 # sharp-web-resizing-images
 
-
-<img src="https://cdn.jsdelivr.net/gh/lovell/sharp@main/docs/image/sharp-logo.svg" width="100" alt="logo">
+![Sharp Logo](https://cdn.jsdelivr.net/gh/lovell/sharp@main/docs/image/sharp-logo.svg)
 
 ## Description
 

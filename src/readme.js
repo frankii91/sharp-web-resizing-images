@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const parentDir = path.join(__dirname, '..');
-const filePath = path.join(parentDir, 'README.MD');
+const filePath = path.join(parentDir, 'README-HOWTO.MD');
 
 import showdown from 'showdown';
 const { Converter } = showdown;
