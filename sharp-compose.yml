@@ -5,7 +5,7 @@ services:
     user: "root"
     environment:
       - NODE_ENV=debug
-      - SHARP_PORT=77
+      - SHARP_PORT=8080
       - SHARP_HOST=0.0.0.0
       - SHARP_IMAGES_MOUNT=/mnt/images
       - SHARP_IMAGES_RESULT=/mnt/result
@@ -14,7 +14,7 @@ services:
       - ./images:/app/images
       - ./result:/app/result
     ports:
-      - target: 77
+      - target: 8080
         published: 8080
         protocol: tcp
     command: npm start

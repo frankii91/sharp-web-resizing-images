@@ -1,0 +1,5 @@
+{
+  "verbose": true,
+  "pollingInterval": 100,
+  "legacyWatch": true
+}

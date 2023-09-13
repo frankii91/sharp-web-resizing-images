@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+#docker container prune
+#docker image prune
+#docker image prune -a
+
+
 current_version=$(cat version.txt)
 new_version=$((current_version + 1))
 echo $new_version > version.txt
@@ -12,6 +17,6 @@ docker build --pull -f Dockerfile -t frankii91/sharp .
 echo "SHARP VERSION: $BUILD_VERSION"
 
 echo "--> TAGGING frankii91/sharp:$BUILD_VERSION"
-docker tag frankii91/sharp frankii91/sharp:$BUILD_VERSION
+docker tag frankii91/sharp frankii91/sharp:BUILD_VERSION
 echo "--> TAGGING frankii91/sharp:latest"
 docker tag frankii91/sharp frankii91/sharp:latest

@@ -8,12 +8,14 @@ const __dirname = path.dirname(__filename);
 const parentDir = path.join(__dirname, '..');
 const filePath = path.join(parentDir, 'README-HOWTO.MD');
 
+
 import showdown from 'showdown';
 const { Converter } = showdown;
 const converter = new Converter();
 
 router.get('/', async (req, res)=>
 {
+    console.log("/readme");
     try {
         fs.readFile(filePath, 'utf8', (err, data) => {
             if (err) {

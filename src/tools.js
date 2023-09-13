@@ -137,7 +137,7 @@ async function loader(loaderTyp, imagePath) {
             }
         case 'mount':
             try {
-                localFilePath = __dirImagesLocal + "/" + sanitizePath(__dirImagesMount, imagePath)
+                localFilePath = __dirImagesMount + "/" + sanitizePath(__dirImagesMount, imagePath)
                 console.log("mount FS imagePath:" + localFilePath);
                 return await fs.readFile(localFilePath);
             } catch (error) {
@@ -167,12 +167,15 @@ function isValidResize(value) {
     const width = parseInt(value.slice(0, index), 10);
     const height = parseInt(value.slice(index + 1), 10);
 
-    if (isNaN(width) || isNaN(height)) return false;
+    if (isNaN(width) || isNaN(height)) return res.status(400).send('Invalid "outputResize" parameter');
 
     return { width, height };
 }
 
 function parseBool(value) {
+    if (typeof value === 'boolean') {
+        return true;
+    }
     if (typeof value === 'string') {
         value = value.toLowerCase().trim();
         if (value === 'true' || value === '1') {
@@ -182,14 +185,44 @@ function parseBool(value) {
             return false;
         }
         return false;
-        //throw new Error("Error parse to bool");
     }
     if (typeof value === 'number') {
-        return value === 1;
+        if (value === 1) {
+            return true;
+        }
+        if (value === 0) {
+            return false;
+        }
     }
     return false;
-    //throw new Error("Error parse to bool");
+
 }
+
+function validateBool(value, name) {
+    if (typeof value === 'boolean') {
+        return value;
+    }
+    if (typeof value === 'string') {
+        // value = value.toLowerCase().trim();
+        // if (value === 'true' || value === '1') {
+        //     return true;
+        // }
+        // if (value === 'false' || value === '0') {
+        //     return false;
+        // }
+        throw new Error(`Error parse to bool ${name} is string`);
+    }
+    if (typeof value === 'number') {
+        if (value === 1) {
+            return true;
+        }
+        if (value === 0) {
+            return false;
+        }
+    }
+    throw new Error(`Error parse to bool ${name}`);
+}
+
 
 export {
     createDirectory,
@@ -198,5 +231,6 @@ export {
     pathNormalize,
     loader,
     isValidResize,
-    parseBool
+    parseBool,
+    validateBool
 };

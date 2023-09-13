@@ -18,6 +18,7 @@ const router = express.Router();
 
 router.get('/', async (req, res)=>
 {
+    console.log("/multi");
     try {
         const loaderTyp = req.query.loaderTyp;
         const allowedLoaderTyp = {
@@ -30,7 +31,7 @@ router.get('/', async (req, res)=>
         if(!imagePath) return res.status(400).send('Invalid "imagePath" parameter');
 
         const imageBuffer = await loader(loaderTyp, imagePath);
-        let sharpConfig = sharp(imageBuffer);
+        let sharpConfig = await sharp(imageBuffer);
 
         const outputFormat = req.query.outputFormat || "jpg";
         const allowedOutputFormat = {
@@ -41,10 +42,11 @@ router.get('/', async (req, res)=>
         if (!allowedOutputFormat.hasOwnProperty(outputFormat)) return res.status(400).send('Invalid "outputFormat" parameter');
 
         const outputResize = req.query.outputResize;
-        const dimensionsResize = isValidResize(outputResize);
-        if (!dimensionsResize) return res.status(400).json({ error: "Invalid resize format. Should be [int]x[int] e.g. 100x100" });
-        const { width, height } = dimensionsResize;
-        if (dimensionsResize) {
+        if(outputResize){
+            const dimensionsResize = isValidResize(outputResize);
+            if (!dimensionsResize) return res.status(400).json({ error: "Invalid resize format. Should be [int]x[int] e.g. 100x100" });
+            const { width, height } = dimensionsResize;
+            if (dimensionsResize) {
             try{
                 const fit =  req.query.fit || 'contain';
                 const allowedFits = {
@@ -85,7 +87,7 @@ router.get('/', async (req, res)=>
                 if (!/^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/.test(background)) return res.status(400).send('Invalid "background" parameter');
                 if (!allowedKernels.hasOwnProperty(kernel)) return res.status(400).send('Invalid "kernel" parameter');
 
-                sharpConfig = sharpConfig.resize(width, height ,{
+                sharpConfig = await sharpConfig.resize(width, height ,{
                     fit: fit,
                     position: position,
                     background: color(background),
@@ -100,7 +102,7 @@ router.get('/', async (req, res)=>
                 throw new Error(`Resize Error: ${error.message}`);
             }
         }
-
+        }
         let quality;
         let chromaSubsampling;
         let force;
@@ -130,8 +132,20 @@ router.get('/', async (req, res)=>
                 if (isNaN(loop) || +loop < 0 || +loop > 1000) return res.status(400).json({ error: `Invalid loop ${outputFormat}. Should be number of animation iterations, use 0 for infinite = 1000 animation` });
                 if (isNaN(delay) || +delay < 1 || +delay > 10000) return res.status(400).json({ error: `Invalid delay ${outputFormat}. Should be delay(s) between animation frames (in milliseconds)` });
 
-                sharpConfig = sharpConfig.webp({quality : quality, alphaQuality : alphaQuality, lossless : lossless, nearLossless: nearLossless, smartSubsample : smartSubsample,
-                    preset : preset, effort: effort, loop : loop, delay : delay, minSize : minSize, mixed : mixed, force : force });
+                sharpConfig = await sharpConfig.webp({
+                    quality : quality,
+                    alphaQuality : alphaQuality,
+                    lossless : lossless,
+                    nearLossless: nearLossless,
+                    smartSubsample : smartSubsample,
+                    preset : preset,
+                    effort: effort,
+                    loop : loop,
+                    delay : delay,
+                    minSize : minSize,
+                    mixed : mixed,
+                    force : force
+                });
                 break;
             case "avif":
                 console.log(`Output format: ${outputFormat} ... `);
@@ -144,7 +158,12 @@ router.get('/', async (req, res)=>
                 if (isNaN(effort) || +effort < 0 || +effort > 9) return res.status(400).json({ error: `Invalid effort ${outputFormat}. Should be an integer between 0 and 9.` });
                 if (!/^(\d+):(\d+):(\d+)$/.test(chromaSubsampling)) return res.status(400).json({ error: `Invalid chromaSubsampling ${outputFormat}. Should be e '4:4:4' set to '4:2:0' to use chroma subsampling` });
 
-                sharpConfig = sharpConfig.avif({quality : quality, lossless : lossless, effort : effort, chromaSubsampling : chromaSubsampling});
+                sharpConfig = await sharpConfig.avif({
+                    quality : quality,
+                    lossless : lossless,
+                    effort : effort,
+                    chromaSubsampling : chromaSubsampling
+                });
                 break;
             case "jpg":
             default:
@@ -162,10 +181,20 @@ router.get('/', async (req, res)=>
 
                 if (!/^(\d+):(\d+):(\d+)$/.test(chromaSubsampling)) return res.status(400).json({ error: `Invalid chromaSubsampling ${outputFormat}. set to '4:4:4' to prevent chroma subsampling otherwise defaults to '4:2:0' chroma subsampling` });
                 if (isNaN(quality)|| +quality < 1 || +quality > 100) return res.status(400).json({ error: `Invalid quality ${outputFormat}. Should be an integer between 1 and 100.` });
-                if (isNaN(quantisationTable)|| +quantisationTable < 0 || +quantisationTable > 8) return res.status(400).json({ error: `Invalid quality ${outputFormat}. Should be an integer between 1 and 100.` });
+                if (isNaN(quantisationTable)|| +quantisationTable < 0 || +quantisationTable > 8) return res.status(400).json({ error: `Invalid quantisationTable ${outputFormat}. Should be an integer between 1 and 8.` });
 
-                sharpConfig = sharpConfig.jpeg({quality : quality, progressive : progressive, chromaSubsampling: chromaSubsampling, optimiseCoding : optimiseCoding, mozjpeg : mozjpeg,
-                    trellisQuantisation : trellisQuantisation, overshootDeringing : overshootDeringing, optimiseScans : optimiseScans, quantisationTable : quantisationTable, force : force });
+                sharpConfig = await sharpConfig.jpeg({
+                    quality : quality,
+                    progressive : progressive,
+                    chromaSubsampling: chromaSubsampling,
+                    optimiseCoding : optimiseCoding,
+                    mozjpeg : mozjpeg,
+                    trellisQuantisation : trellisQuantisation,
+                    overshootDeringing : overshootDeringing,
+                    optimiseScans : optimiseScans,
+                    quantisationTable : quantisationTable,
+                    force : force
+                });
                 break;
         }
 
