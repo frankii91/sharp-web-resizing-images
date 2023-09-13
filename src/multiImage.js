@@ -434,7 +434,7 @@ const dddd = `{
     "jpg": {
         "quality": 75,
         "progressive": false,
-        "chromaSubsampling": "4:2:0",
+        "chromaSubsampling": "4:4:4",
         "optimiseCoding": true,
         "mozjpeg": false,
         "trellisQuantisation": false,
@@ -533,18 +533,18 @@ router.get('/', async (req, res)=>
                     const formatConfig = imageProcessing.outputFormat[outputFormat];
                     switch (outputFormat) {
                         case "webp":
-                            const sharpStream_webp = sharpResize.webp(formatConfig.getSharpConfig());
+                            const sharpStream_webp = sharpResize.clone().webp(formatConfig.getSharpConfig());
                             await sharpStream_webp.toFile(`${destinationDir}/${fileNameWithoutExt}-${resizeConfig.width}x${resizeConfig.height}.${outputFormat}`);
                             console.debug("webp");
                             break;
                         case "avif":
-                            const sharpStream_avif = sharpResize.avif(formatConfig.getSharpConfig());
+                            const sharpStream_avif = sharpResize.clone().avif(formatConfig.getSharpConfig());
                             await sharpStream_avif.toFile(`${destinationDir}/${fileNameWithoutExt}-${resizeConfig.width}x${resizeConfig.height}.${outputFormat}`);
                             console.debug("avif");
                             break;
                         case "jpg":
                         default:
-                            const sharpStream_jpg = sharpResize.jpeg(formatConfig.getSharpConfig());
+                            const sharpStream_jpg = sharpResize.clone().jpeg(formatConfig.getSharpConfig());
                             await sharpStream_jpg.toFile(`${destinationDir}/${fileNameWithoutExt}-${resizeConfig.width}x${resizeConfig.height}.${outputFormat}`);
                             console.debug("jpg");
                             break;
