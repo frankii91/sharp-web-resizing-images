@@ -5,11 +5,8 @@ import color from "color";
 import {
     createDirectory,
     sanitizePath,
-    cutPath,
     pathNormalize,
     loader,
-    isValidResize,
-    parseBool,
     validateBool
 } from "./tools.js";
 
