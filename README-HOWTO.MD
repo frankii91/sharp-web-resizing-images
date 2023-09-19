@@ -33,9 +33,9 @@
 #### co ma sie stać z zdjęciem wyjściowym
 #### local, mount, stream jak nie podamy lub podamy wartość stream to wynik będzie na ekran przeglądarki
 
-### &resultTyp=local
-### &resultTyp=mount
-### &resultTyp=stream
+### &outputStorage=local
+### &outputStorage=mount
+### &outputStorage=stream
 
 
 # RESIZE
