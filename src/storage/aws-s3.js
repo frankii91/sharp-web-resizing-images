@@ -3,20 +3,28 @@ import {
     ListBucketsCommand,
     ListObjectsV2Command,
     GetObjectCommand,
-    PutObjectCommand
+    PutObjectCommand,
+    DeleteObjectCommand,
+    DeleteObjectsCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import {AWS_ACCOUNT_ID, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_BUCKET, AWS_HOST} from "./config.js";
+import {AWS_ACCOUNT_ID, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_BUCKET, AWS_HOST} from "../config.js";
+import crypto from 'crypto';
 
 async function Client(){
-    return new S3Client({
-        region: "auto",
-        endpoint: `https://${AWS_ACCOUNT_ID}.${AWS_HOST}`,
-        credentials: {
-            accessKeyId: AWS_ACCESS_KEY_ID,
-            secretAccessKey: AWS_SECRET_ACCESS_KEY,
-        },
-    });
+    try {
+        return new S3Client({
+            region: "auto",
+            endpoint: `https://${AWS_ACCOUNT_ID}.${AWS_HOST}`,
+            credentials: {
+                accessKeyId: AWS_ACCESS_KEY_ID,
+                secretAccessKey: AWS_SECRET_ACCESS_KEY,
+            },
+        });
+    } catch (error) {
+        console.error('Error Client connect:', error);
+        throw new Error(`Error Client connect: ${error}`);
+    }
 }
 
 
@@ -75,29 +83,100 @@ async function test_AWS_PutObject(){
     const response = await client.send(command);
 
 }
+
+/*
+metadane dal obiektu w cloudfalre r2 zgodność z aws s3
+https://developers.cloudflare.com/r2/api/s3/api/
+
+✅ System Metadata:
+  ✅ Content-Type
+  ✅ Cache-Control
+  ✅ Content-Disposition
+  ✅ Content-Encoding
+  ✅ Content-Language
+  ✅ Expires
+  ✅ Content-MD5
+
+
+
+
+ */
 async function AWS_PutObject(stream, key, contentType){
-    let client;
-    try {
-        client = await Client();
-    } catch (error) {
-        console.error('Error Client connect:', error);
-        throw new Error(`Error Client connect: ${error}`);
-    }
+    const client = await Client();
 
     try {
+
+        const md5sum = crypto.createHash('md5').update(stream).digest('base64');
         const input = {
             Body: stream,
             Bucket: AWS_BUCKET, // required
-            Key: key, // required
-            ContentType: contentType
+            Key: key.replace(/^\/+/, ""), // required
+            ContentType: contentType,
+            ContentDisposition: 'inline', // aby wyswietlało w przeglądarce a 'attachment;filename="filename.json"'  aby przeglądarka pobierałą plik z nazwą...
+            ContentLanguage: 'pl-PL',
+            ContentMD5: md5sum,
+            Metadata: {
+                "test": "test-string",
+            }
         };
-        const command = new PutObjectCommand(input);
 
         // Oczekiwanie na wysłanie obiektu do S3
-        return await client.send(command);
+        const comres =  await client.send(new PutObjectCommand(input));
+        console.debug(comres);
+
+        return comres;
     } catch (error) {
         console.error(`Błąd podczas zapisu do S3. Klucz: ${key}. Szczegóły:`, error);
         throw new Error(`Błąd podczas zapisu do S3. Klucz: ${key}. Szczegóły: ${error}`);
+    }
+}
+
+async function AWS_DeleteObject(key='/images/homeslider/1476/gk-meble-cc.jpg'){
+    if (!key) {
+        throw new Error("The keys parameter should be a non-empty string.");
+    }
+
+    const client = await Client();
+
+    try {
+        const input = {
+            Bucket: AWS_BUCKET, // required
+            Key: key.replace(/^\/+/, "") // required
+        };
+
+        // Oczekiwanie na wysłanie obiektu do S3
+        const comres =  await client.send(new DeleteObjectCommand(input));
+        console.debug(comres);
+
+        return comres;
+    } catch (error) {
+        console.error(`Błąd podczas usuwania z S3. Klucz: ${key}. Szczegóły:`, error);
+        throw new Error(`Błąd podczas usuwania z S3. Klucz: ${key}. Szczegóły: ${error}`);
+    }
+}
+async function AWS_DeleteObjects(keys=['/images/homeslider/1476/gk-meble-cc.jpg']){
+    if (!Array.isArray(keys) || !keys.length) {
+        throw new Error("The keys parameter should be a non-empty array.");
+    }
+
+    const client = await Client();
+
+    try {
+        const input = {
+            Bucket: AWS_BUCKET, // required
+            Delete: {
+                Objects: keys.map(key => ({ Key: key })),
+                Quiet: true
+            }
+        };
+        // Oczekiwanie na wysłanie obiektu do S3
+        const comres =  await client.send(new DeleteObjectsCommand(input));
+        console.debug(comres);
+
+        return comres;
+    } catch (error) {
+        console.error(`Błąd podczas usuwania z S3. Klucz: ${key}. Szczegóły:`, error);
+        throw new Error(`Błąd podczas usuwania z S3. Klucz: ${key}. Szczegóły: ${error}`);
     }
 }
 async function test(){
@@ -188,7 +267,8 @@ async function test(){
 //   }
 
 export {
-
+    AWS_DeleteObjects,
+    AWS_DeleteObject,
     AWS_PutObject,
     test
 }

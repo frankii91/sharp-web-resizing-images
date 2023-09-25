@@ -1,17 +1,15 @@
 import express from 'express';
 import * as config from './config.js';
-//import oneImage from './oneImage.js';
-import oneImage from './oneImage2.js';
+import oneImage from './oneImage.js';
 import multiImage from './multiImage.js';
 import readme from './readme.js';
 import status from './status.js';
+import test from './test.js';
 import bodyParser from 'body-parser';
 import multer from 'multer';
 import expressJSDocSwagger from 'express-jsdoc-swagger';
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
-
-import {test} from './file_storage_cloudflarer2.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -88,6 +86,8 @@ app.use('/one', oneImage);
 app.use('/multi', multiImage);
 app.use('/status', status);
 app.use('/readme', readme);
+app.use('/test', test);
+
 app.listen(config.PORT, config.HOST, () => {
     console.log(`Server SHARP Running on http://${config.HOST}:${config.PORT}`);
 });

@@ -1,12 +1,49 @@
 import {validateBool} from "./tools.js";
-import {__dirImagesLocal, __dirImagesMount, __dirImagesResultLocal, __dirImagesResultMount} from "./directories.js";
-import path from "path";
+import * as path from 'path';
+
 import {promises as fs} from "fs";
 import got from "got";
+import {__dirImagesLocal, __dirImagesMount, __dirImagesResultLocal, __dirImagesResultMount} from "./config.js";
 
 
-class ResizeConfig {
+class BaseClass {
+    constructor() {
+        this.PROPERTIES_TO_OMIT = new Set(['PROPERTIES_TO_OMIT']);
+    }
+
+    toJSON() {
+        const output = {};
+        for (const key of Object.keys(this)) {
+            if (!this.PROPERTIES_TO_OMIT.has(key)) {
+                if (Array.isArray(this[key])) {
+                    // Jeśli właściwość jest tablicą
+                    output[key] = this[key].map(el => {
+                        if (el instanceof Object && typeof el.toJSON === 'function') {
+                            // Jeśli element tablicy jest obiektem i ma metodę toJSON
+                            return el.toJSON();
+                        } else {
+                            // Dla innych typów wartości (np. prymitywów)
+                            return el;
+                        }
+                    });
+                } else if (this[key] instanceof Object && typeof this[key].toJSON === 'function') {
+                    // Dla pojedynczych obiektów
+                    output[key] = this[key].toJSON();
+                } else {
+                    // Dla innych typów wartości
+                    output[key] = this[key];
+                }
+            }
+        }
+        return output;
+    }
+}
+
+class ResizeConfig extends BaseClass {
     constructor(data) {
+        super();
+        // this.PROPERTIES_TO_OMIT = new Set([...this.PROPERTIES_TO_OMIT, 'destinationDirLocal', 'destinationDirMount']);
+
         this.outputResize = data.outputResize;
         this.fit = data.fit || 'contain';
         this.position = data.position || 'center';
@@ -15,17 +52,17 @@ class ResizeConfig {
         this.withoutEnlargement = data.withoutEnlargement || false;
         this.withoutReduction = data.withoutReduction || false;
         this.fastShrinkOnLoad = data.fastShrinkOnLoad || true;
-        this.addName = data.addName;
-        this.addNameSuffix = this.addName &&  this.addName.trim() !== '' ? `-${this.addName}` : '';
+        this.addName = data.addName || '';
+        this.addNameWithSuffix = this.addName &&  this.addName.trim() !== '' ? `-${this.addName}` : '';
         this.validateData();
 
     }
     validateAndSetDimensions() {
         if (!this.outputResize) throw new Error("Invalid resize format. Should be [int]x[int] e.g. 100x100");
-        this.dimensions = this.isValidResize(this.outputResize);
-        if (!this.dimensions) throw new Error("Invalid resize format. Should be [int]x[int] e.g. 100x100");
-        this.width =  this.dimensions.width;
-        this.height =  this.dimensions.height;
+        const dimensions = this.isValidResize(this.outputResize);
+        if (!dimensions) throw new Error("Invalid resize format. Should be [int]x[int] e.g. 100x100");
+        this.width =  dimensions.width;
+        this.height =  dimensions.height;
     }
     isValidResize(value) {
 
@@ -65,8 +102,10 @@ class ResizeConfig {
     validateBackground(background){
         if (!/^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/.test(background)) throw new Error('Invalid "resize.background" parameter');
     }
-    validateName(addName){
-        if (!/^[^/\\:*?"<>|]+$/.test(addName)) throw new Error('Invalid "addName" parameter');
+    validateAddName(addName){
+        if (addName != null && typeof addName === 'string' && !/^[^/\\:*?"<>|]*$/.test(addName)) {
+            throw new Error('Invalid "addName" parameter');
+        }
     }
     validateKernel(kernel){
         const allowedKernels = {
@@ -88,7 +127,7 @@ class ResizeConfig {
         this.withoutEnlargement = validateBool(this.withoutEnlargement, "resize.withoutEnlargement");
         this.withoutReduction = validateBool(this.withoutReduction, "resize.withoutReduction");
         this.fastShrinkOnLoad = validateBool(this.fastShrinkOnLoad, "resize.fastShrinkOnLoad");
-        this.validateName(this.addName);
+        this.validateAddName(this.addName);
     }
 
     getSharpConfig() {
@@ -104,8 +143,10 @@ class ResizeConfig {
     }
 }
 
-class AvifConfig {
+class AvifConfig extends BaseClass {
     constructor(data) {
+        super();
+        // this.PROPERTIES_TO_OMIT = new Set([...this.PROPERTIES_TO_OMIT, 'destinationDirLocal', 'destinationDirMount']);
         this.quality = data.quality || 50;
         this.lossless = data.lossless || false;
         this.effort = data.effort || 4;
@@ -140,8 +181,10 @@ class AvifConfig {
     }
 }
 
-class WebpConfig {
+class WebpConfig extends BaseClass {
     constructor(data) {
+        super();
+        // this.PROPERTIES_TO_OMIT = new Set([...this.PROPERTIES_TO_OMIT, 'destinationDirLocal', 'destinationDirMount']);
         this.quality = data.quality || 80;
         this.alphaQuality = data.alphaQuality || 100;
         this.lossless = data.lossless || false;
@@ -212,8 +255,10 @@ class WebpConfig {
     }
 }
 
-class JpgConfig {
+class JpgConfig extends BaseClass {
     constructor(data) {
+        super();
+        // this.PROPERTIES_TO_OMIT = new Set([...this.PROPERTIES_TO_OMIT, 'destinationDirLocal', 'destinationDirMount']);
         this.quality = data.quality || 80;
         this.progressive = data.progressive || false;
         this.chromaSubsampling = data.chromaSubsampling || '4:2:0';
@@ -266,23 +311,21 @@ class JpgConfig {
     }
 }
 
-class ImageProcessingRequest {
-
+class ImageProcessingRequest extends BaseClass {
     constructor(data) {
+        super();
+        this.PROPERTIES_TO_OMIT = new Set([...this.PROPERTIES_TO_OMIT, 'destinationDirLocal', 'destinationDirMount']);
+
         this.loaderTyp = data.loaderTyp || 'local';
         this.imagePath = data.imagePath;
         this.outputStorage = data.outputStorage || 'local';
-
         this.validateData();
-
-
         const { filePathWithoutFileName, fileNameWithoutExt, fileExt } =  this.pathNormalize(this.loaderTyp, this.imagePath);
         this.filePathWithoutFileName = filePathWithoutFileName;
         this.fileNameWithoutExt = fileNameWithoutExt;
         this.fileExt = fileExt;
-        this.destinationDirLocal = __dirImagesResultLocal + "/" + this.filePathWithoutFileName;
-        this.destinationDirMount = __dirImagesResultMount + "/" + this.filePathWithoutFileName;
-
+        this.destinationDirLocal = path.join(__dirImagesResultLocal, this.filePathWithoutFileName);
+        this.destinationDirMount = path.join(__dirImagesResultMount, this.filePathWithoutFileName);
 
 
         if (Array.isArray(data.outputResize)) {
@@ -399,7 +442,7 @@ class ImageProcessingRequest {
                     const domain = parsedUrl.hostname;
                     const port = parsedUrl.port;
                     const filePath = parsedUrl.pathname;
-                    const filePathWithoutFileName = filePath.substring(0, filePath.lastIndexOf('/'));
+                    const filePathWithoutFileName =  path.normalize(filePath.substring(0, filePath.lastIndexOf('/')));
                     const fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
                     const fileExt = fileName.substring(fileName.lastIndexOf('.'));
                     const fileNameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
@@ -447,7 +490,8 @@ class ImageProcessingRequest {
     }
 
     cutPath(imagePath){
-        const filePathWithoutFileName = path.dirname(imagePath);
+
+        const filePathWithoutFileName = path.dirname(path.normalize(imagePath));
         const fileName = path.basename(imagePath);
         const fileExt = path.extname(imagePath);
         const fileNameWithoutExt = path.basename(imagePath, fileExt);
@@ -485,9 +529,9 @@ class ImageProcessingRequest {
             case 'mount':
                 let localFilePath;
                 if (loaderTyp === 'local') {
-                    localFilePath = __dirImagesLocal + "/" + this.sanitizePath(__dirImagesLocal, imagePath);
+                    localFilePath = path.join(__dirImagesLocal, this.sanitizePath(__dirImagesLocal, imagePath))
                 } else {
-                    localFilePath = __dirImagesLocal + "/" + this.sanitizePath(__dirImagesMount, imagePath);
+                    localFilePath = path.join(__dirImagesLocal, this.sanitizePath(__dirImagesMount, imagePath))
                 }
 
                 try {
@@ -523,7 +567,8 @@ class ImageProcessingRequest {
             'local': true,
             'mount': true,
             'stream': true,
-            'cr2': true
+            'cr2': true,
+            'ftp': true
         };
         if (!allowedOutputStorage.hasOwnProperty(this.outputStorage)) throw new Error('Invalid "outputStorage" parameter');
     }
@@ -532,9 +577,9 @@ class ImageProcessingRequest {
         this.validateLoaderAndPath(this.loaderTyp, this.imagePath);
         this.validateOutputStorage();
     }
+
+
 }
-
-
 
 export {
     ResizeConfig,
