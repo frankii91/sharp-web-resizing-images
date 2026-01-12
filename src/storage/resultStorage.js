@@ -5,9 +5,45 @@ import {AWS_DeleteObject, AWS_PutObject} from "./aws-s3.js";
 import {
     __dirImagesResultLocal,
     __dirImagesResultMount,
-    FTP_BaseDirImagesResult
+    FTP_BaseDirImagesResult, RESULT_MULTI_SAVE
 } from "../config.js";
 import {FTPremove, FTPupload} from "./ftp.js";
+
+
+class BufferManager {
+    constructor() {
+        this.buffers = [];
+    }
+
+    addBuffer(buffer) {
+        return new Promise((resolve) => {
+            this.buffers.push(buffer);
+            resolve();
+        });
+    }
+
+    getBuffers() {
+        return new Promise((resolve) => {
+            resolve(this.buffers);
+        });
+    }
+
+    clearBuffers() {
+        return new Promise((resolve) => {
+            this.buffers = [];
+            resolve();
+        });
+    }
+}
+
+class BufferManagerFactory {
+    create() {
+        return new BufferManager();
+    }
+}
+
+// Singleton Factory
+const bufferManagerFactory = new BufferManagerFactory();
 
 class Storage {
     constructor(buffer, dirPath, fileName) {
@@ -40,14 +76,16 @@ class MountStorage extends LocalStorage {
 
 // AWS S3 przechowywanie
 class S3Storage extends Storage {
-    constructor(buffer, key, contentType) {
+    constructor(buffer, key, contentType, metaTags) {
         super(buffer, null, null);
         this.key = key;
         this.contentType = contentType;
+        this.metaTags = metaTags;
+
     }
 
     async save() {
-        return await AWS_PutObject(this.buffer , this.key, this.contentType);
+        return await AWS_PutObject(this.buffer , this.key, this.contentType, this.metaTags);
     }
     async delete() {
         return await AWS_DeleteObject(this.key);
@@ -83,42 +121,62 @@ class StreamStorage extends Storage {
 }
 
 class StorageManagerV {
-    constructor(outputStorage, buffer, dirPath, fileName, response, contentType) {
+
+    constructor(outputStorage, buffer, dirPath, fileName, response, contentType, metaTags) {
+        this.bufferManager = bufferManagerFactory.create();
+
         this.outputStorage = outputStorage;
         this.buffer = buffer;
         this.dirPath = dirPath;
         this.fileName = fileName;
         this.response = response;
         this.contentType = contentType;
+        this.metaTags = metaTags;
 
         /** @type {Storage} */
         this.storage = null;
 
-        switch(this.outputStorage) {
-            case 'local':
-                this.storage = new LocalStorage(this.buffer, `${path.join(__dirImagesResultLocal, this.dirPath)}`, this.fileName);
-                break;
-            case 'mount':
-                this.storage = new MountStorage(this.buffer, `${path.join(__dirImagesResultMount, this.dirPath)}`, this.fileName);
-                break;
-            case 'cr2':
-                this.storage = new S3Storage(this.buffer, `${path.join(this.dirPath, this.fileName)}`, this.contentType);
-                break;
-            case 'ftp':
-                this.storage = new FTPStorage(this.buffer, `${path.join(FTP_BaseDirImagesResult, this.dirPath)}`, this.fileName);
-                break;
-            case 'stream':
-                this.storage = new StreamStorage(this.buffer, this.response, this.contentType);
-                break;
-            default:
-                throw new Error(`Unsupported output storage type: ${this.outputStorage}`);
-        }
     }
-    async save() {
-        try {
-            const result = await this.storage.save();
-            // Jeśli operacja zakończyła się pomyślnie, dodaj dodatkowe informacje.
 
+    async save() {
+        let result;
+
+        try {
+            if(RESULT_MULTI_SAVE){
+                result = await this.bufferManager.addBuffer(
+                    {  outputStorage: this.outputStorage,
+                        buffer: this.buffer,
+                        dirPath: this.dirPath,
+                        fileName: this.fileName,
+                        response: this.response,
+                        contentType: this.contentType,
+                        metaTags: this.metaTags,
+                    }
+                )
+            }
+            else{
+                switch(this.outputStorage) {
+                    case 'local':
+                        this.storage = new LocalStorage(this.buffer, `${path.join(__dirImagesResultLocal, this.dirPath)}`, this.fileName);
+                        break;
+                    case 'mount':
+                        this.storage = new MountStorage(this.buffer, `${path.join(__dirImagesResultMount, this.dirPath)}`, this.fileName);
+                        break;
+                    case 'cr2':
+                        this.storage = new S3Storage(this.buffer, `${path.join(this.dirPath, this.fileName)}`, this.contentType, this.metaTags);
+                        break;
+                    case 'ftp':
+                        this.storage = new FTPStorage(this.buffer, `${path.join(FTP_BaseDirImagesResult, this.dirPath)}`, this.fileName);
+                        break;
+                    case 'stream':
+                        this.storage = new StreamStorage(this.buffer, this.response, this.contentType);
+                        break;
+                    default:
+                        throw new Error(`Unsupported output storage type: ${this.outputStorage}`);
+                }
+                result = await this.storage.save();
+            }
+            // Jeśli operacja zakończyła się pomyślnie, dodaj dodatkowe informacje.
             return {
                 ...result,
                 storageType: this.getStorageType(),

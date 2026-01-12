@@ -57,7 +57,7 @@ import {META_TAGS} from "./config.js";
 //         return res.status(500).json({ error: "Internal Server Error", message: err.message });
 //     });
 
-async function processPromises(promises) {
+async function processPromises(promises, res) {
     const results = await Promise.allSettled(promises);
 
     // Check if any promise was rejected
@@ -67,6 +67,8 @@ async function processPromises(promises) {
         await withdrawalPromises(results);
     } else {
         console.debug("Processing finished. All files were generated and saved successfully.");
+        return res.status(200).json({ error: null, message: "Processing finished. All files were generated and saved successfully." });
+
     }
 }
 
@@ -143,32 +145,43 @@ function validateBool(value, name) {
     throw new Error(`Error parse to bool ${name}`);
 }
 function flattenObject(ob) {
-    const toReturn = {};
+    let toReturn = {};
 
-    for (const i in ob) {
+    for (let i in ob) {
         if (!ob.hasOwnProperty(i)) continue;
 
-        if ((typeof ob[i]) === 'object' && !Array.isArray(ob[i])) {
-            const flatObject = flattenObject(ob[i]);
-            for (const x in flatObject) {
+        if ((typeof ob[i]) === 'object' && !Array.isArray(ob[i]) && ob[i] !== null) {
+            let flatObject = flattenObject(ob[i]);
+            for (let x in flatObject) {
                 if (!flatObject.hasOwnProperty(x)) continue;
 
-                toReturn[`${i}.${x}`] = flatObject[x];
+                toReturn[i + '--' + x] = flatObject[x];
             }
         } else {
-            toReturn[i] = ob[i];
+            toReturn[i] = typeof ob[i] === 'string' ? ob[i] : JSON.stringify(ob[i]);
         }
     }
     return toReturn;
 }
 function unflattenObject(data) {
-    var result = {};
-    for (var key in data) {
-        var keys = key.split('.');
-        keys.reduce(function(r, e, j) {
-            return r[e] || (r[e] = isNaN(Number(keys[j + 1])) ? (keys.length - 1 === j ? data[key] : {}) : []);
-        }, result);
+    if (typeof data !== 'object' || data === null) return data; // handling non-object types or null
+
+    let result = {};
+
+    for (let key in data) {
+        if (data.hasOwnProperty(key)) {
+            let keys = key.split('--');
+            keys.reduce((r, e, j, a) => {
+                if (j === a.length - 1) {
+                    r[e] = data[key]; // assign the value
+                    return r;
+                }
+                if (!r[e]) r[e] = isNaN(Number(a[j + 1])) ? {} : [];
+                return r[e]; // continue to the next key
+            }, result);
+        }
     }
+
     return result;
 }
 
@@ -187,6 +200,7 @@ async function saveMetaTags(imageProcessing){
 }
 
 export {
+    flattenObject,
     saveMetaTags,
     processPromises,
     parseBool,

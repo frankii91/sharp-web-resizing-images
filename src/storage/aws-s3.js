@@ -10,6 +10,7 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {AWS_ACCOUNT_ID, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_BUCKET, AWS_HOST} from "../config.js";
 import crypto from 'crypto';
+import {flattenObject} from "../tools.js";
 
 async function Client(){
     try {
@@ -20,6 +21,7 @@ async function Client(){
                 accessKeyId: AWS_ACCESS_KEY_ID,
                 secretAccessKey: AWS_SECRET_ACCESS_KEY,
             },
+            logger: console
         });
     } catch (error) {
         console.error('Error Client connect:', error);
@@ -101,7 +103,7 @@ https://developers.cloudflare.com/r2/api/s3/api/
 
 
  */
-async function AWS_PutObject(stream, key, contentType){
+async function AWS_PutObject(stream, key, contentType, metaTags){
     const client = await Client();
 
     try {
@@ -115,9 +117,7 @@ async function AWS_PutObject(stream, key, contentType){
             ContentDisposition: 'inline', // aby wyswietlało w przeglądarce a 'attachment;filename="filename.json"'  aby przeglądarka pobierałą plik z nazwą...
             ContentLanguage: 'pl-PL',
             ContentMD5: md5sum,
-            Metadata: {
-                "test": "test-string",
-            }
+            Metadata: metaTags
         };
 
         // Oczekiwanie na wysłanie obiektu do S3
