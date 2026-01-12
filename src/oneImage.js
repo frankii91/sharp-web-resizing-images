@@ -29,7 +29,7 @@ router.get('/', async (req, res)=>
         promises.push(saveMetaTags(imageProcessing));
 
         try {
-            await processPromises(promises, res);
+            await processPromises(promises, res, imageProcessing.outputStorage);
             // end
         } catch (error) {
             console.error("An error occurred while processing promises in oneImage:", error);
@@ -37,7 +37,9 @@ router.get('/', async (req, res)=>
         }
     } catch (error) {
         console.error("Internal Server Error", error);
-        return res.status(500).json({ error: "Internal Server Error", message: error.message});
+        if (!res.headersSent) { // jak stream to nagłówki mogły już byc wysłane...
+            return res.status(500).json({ error: "Internal Server Error", message: error.message});
+        }
     }
 });
 

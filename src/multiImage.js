@@ -90,7 +90,7 @@ router.get('/', async (req, res)=>
         promises.push(saveMetaTags(imageProcessing));
 
         try {
-            await processPromises(promises, res);
+            await processPromises(promises, res, imageProcessing.outputStorage);
             // end
         } catch (error) {
             console.error("An error occurred while processing promises in multiImage:", error);

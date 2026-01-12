@@ -1,7 +1,9 @@
 import {validateBool} from "./tools.js";
 import * as path from 'path';
 
-import {promises as fs} from "fs";
+//import {promises as fs} from "fs";
+import fs from "fs";
+
 import got from "got";
 import {__dirImagesLocal, __dirImagesMount, __dirImagesResultLocal, __dirImagesResultMount} from "./config.js";
 
@@ -374,7 +376,7 @@ class ImageProcessingRequest extends BaseClass {
                 try {
                     localFilePath = __dirImagesLocal + "/" + this.sanitizePath(__dirImagesLocal, this.imagePath)
                     console.log("local FS imagePath:" + localFilePath);
-                    return await fs.readFile(localFilePath);
+                    return await fs.promises.readFile(localFilePath);
                 } catch (error) {
                     console.error("Error reading the file local:", error);
                     throw new Error(`Could not read file local: ${error.message}`);
@@ -383,7 +385,7 @@ class ImageProcessingRequest extends BaseClass {
                 try {
                     localFilePath = __dirImagesMount + "/" + this.sanitizePath(__dirImagesMount, this.imagePath)
                     console.log("mount FS imagePath:" + localFilePath);
-                    return await fs.readFile(localFilePath);
+                    return await fs.promises.readFile(localFilePath);
                 } catch (error) {
                     console.error("Error reading the file local:", error);
                     throw new Error(`Could not read file local: ${error.message}`);
@@ -426,7 +428,8 @@ class ImageProcessingRequest extends BaseClass {
                 }
             case 'mount':
                 try {
-                    imagePath = this.sanitizePath(__dirImagesLocal, imagePath);
+                    // imagePath = this.sanitizePath(__dirImagesLocal, imagePath);
+                    imagePath = this.sanitizePath(__dirImagesMount, imagePath);
                     console.log("Mount path parse :" +  imagePath);
                     return this.cutPath(imagePath);
                 } catch (error) {
@@ -531,7 +534,7 @@ class ImageProcessingRequest extends BaseClass {
                 if (loaderTyp === 'local') {
                     localFilePath = path.join(__dirImagesLocal, this.sanitizePath(__dirImagesLocal, imagePath))
                 } else {
-                    localFilePath = path.join(__dirImagesLocal, this.sanitizePath(__dirImagesMount, imagePath))
+                    localFilePath = path.join(__dirImagesMount, this.sanitizePath(__dirImagesMount, imagePath))
                 }
 
                 try {

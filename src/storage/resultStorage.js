@@ -139,62 +139,73 @@ class StorageManagerV {
     }
 
     async save() {
-        let result;
-
         try {
-            if(RESULT_MULTI_SAVE){
-                result = await this.bufferManager.addBuffer(
-                    {  outputStorage: this.outputStorage,
-                        buffer: this.buffer,
-                        dirPath: this.dirPath,
-                        fileName: this.fileName,
-                        response: this.response,
-                        contentType: this.contentType,
-                        metaTags: this.metaTags,
+            const shouldBufferOnly = RESULT_MULTI_SAVE && this.outputStorage !== 'stream';
+
+            if (shouldBufferOnly) {
+                await this.bufferManager.addBuffer({
+                    outputStorage: this.outputStorage,
+                    buffer: this.buffer,
+                    dirPath: this.dirPath,
+                    fileName: this.fileName,
+                    response: this.response,
+                    contentType: this.contentType,
+                    metaTags: this.metaTags,
+                });
+
+                return {
+                    storageType: this.outputStorage,   // ważne: żeby rollback nie wywalał
+                    dirPath: this.dirPath,
+                    fileName: this.fileName,
+                    status: 'queued',
+                };
+            }
+
+            switch (this.outputStorage) {
+                case 'local':
+                    this.storage = new LocalStorage(this.buffer, `${path.join(__dirImagesResultLocal, this.dirPath)}`, this.fileName);
+                    break;
+                case 'mount':
+                    this.storage = new MountStorage(this.buffer, `${path.join(__dirImagesResultMount, this.dirPath)}`, this.fileName);
+                    break;
+                case 'cr2':
+                    this.storage = new S3Storage(this.buffer, `${path.join(this.dirPath, this.fileName)}`, this.contentType, this.metaTags);
+                    break;
+                case 'ftp':
+                    this.storage = new FTPStorage(this.buffer, `${path.join(FTP_BaseDirImagesResult, this.dirPath)}`, this.fileName);
+                    break;
+                case 'stream':
+                    // ochronnie:
+                    if (!this.response || this.response.headersSent) {
+                        return { storageType: 'stream', dirPath: this.dirPath, fileName: this.fileName, status: 'skipped' };
                     }
-                )
+                    this.storage = new StreamStorage(this.buffer, this.response, this.contentType);
+                    break;
+                default:
+                    throw new Error(`Unsupported output storage type: ${this.outputStorage}`);
             }
-            else{
-                switch(this.outputStorage) {
-                    case 'local':
-                        this.storage = new LocalStorage(this.buffer, `${path.join(__dirImagesResultLocal, this.dirPath)}`, this.fileName);
-                        break;
-                    case 'mount':
-                        this.storage = new MountStorage(this.buffer, `${path.join(__dirImagesResultMount, this.dirPath)}`, this.fileName);
-                        break;
-                    case 'cr2':
-                        this.storage = new S3Storage(this.buffer, `${path.join(this.dirPath, this.fileName)}`, this.contentType, this.metaTags);
-                        break;
-                    case 'ftp':
-                        this.storage = new FTPStorage(this.buffer, `${path.join(FTP_BaseDirImagesResult, this.dirPath)}`, this.fileName);
-                        break;
-                    case 'stream':
-                        this.storage = new StreamStorage(this.buffer, this.response, this.contentType);
-                        break;
-                    default:
-                        throw new Error(`Unsupported output storage type: ${this.outputStorage}`);
-                }
-                result = await this.storage.save();
-            }
-            // Jeśli operacja zakończyła się pomyślnie, dodaj dodatkowe informacje.
+
+            const saveResult = await this.storage.save();
+            const resultObj = (saveResult && typeof saveResult === 'object') ? saveResult : {};
+
             return {
-                ...result,
+                ...resultObj,
                 storageType: this.getStorageType(),
                 dirPath: this.dirPath,
                 fileName: this.fileName,
-                status: 'ok'
+                status: 'ok',
             };
         } catch (error) {
-            // Przechwycenie błędu, dodanie dodatkowych informacji i ponowne rzucenie błędu.
             throw {
                 ...error,
                 storageType: this.getStorageType(),
                 dirPath: this.dirPath,
                 fileName: this.fileName,
-                status: 'error'
+                status: 'error',
             };
         }
     }
+
     getStorageType() {
         if (this.storage instanceof LocalStorage) return 'local';
         if (this.storage instanceof MountStorage) return 'mount';

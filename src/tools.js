@@ -57,42 +57,55 @@ import {META_TAGS} from "./config.js";
 //         return res.status(500).json({ error: "Internal Server Error", message: err.message });
 //     });
 
-async function processPromises(promises, res) {
+async function processPromises(promises, res, outputStorage) {
     const results = await Promise.allSettled(promises);
 
-    // Check if any promise was rejected
-    const anyRejected = results.some(result => result.status === 'rejected');
+    const anyRejected = results.some(r => r.status === 'rejected');
 
     if (anyRejected) {
         await withdrawalPromises(results);
-    } else {
-        console.debug("Processing finished. All files were generated and saved successfully.");
-        return res.status(200).json({ error: null, message: "Processing finished. All files were generated and saved successfully." });
 
+        // jeśli stream już wysłał response -> nie wysyłaj JSON
+        if (outputStorage === 'stream' || res?.headersSent) return;
+
+        return res.status(500).json({
+            error: "Internal Server Error",
+            message: "Processing failed"
+        });
     }
+
+    // jeśli stream -> nic nie wysyłaj (bo obraz już poszedł)
+    if (outputStorage === 'stream' || res?.headersSent) return;
+
+    return res.status(200).json({
+        error: null,
+        message: "Processing finished. All files were generated and saved successfully."
+    });
 }
+
 
 async function withdrawalPromises(results) {
     for (const result of results) {
-        // If the promise was fulfilled, we get its value. Otherwise, we get the reason for rejection.
-        if (result.status === 'fulfilled' && 'value' in result) {
-            try{
-                const { storageType, dirPath, fileName } = result.value;
-                try {
-                    await new StorageManagerV(storageType, null, dirPath, fileName, null, null).delete();
-                    console.debug(`Deleted item for ${dirPath}/${fileName} storageType ${storageType}`);
-                } catch (error) {
-                    console.error(`Error while deleting item for ${dirPath}/${fileName} storageType ${storageType}:`, error);
-                }
-            }catch (error) {
-                console.error(`Error parse: const { storageType, dirPath, fileName } = result.value;:`, error);
+        if (result.status === 'fulfilled' && result.value && typeof result.value === 'object') {
+            const { storageType, dirPath, fileName } = result.value || {};
+
+            // jeśli nie ma danych do kasowania (np. value === undefined) -> pomiń
+            if (!storageType || !dirPath || !fileName) continue;
+
+            try {
+                await new StorageManagerV(storageType, null, dirPath, fileName, null, null).delete();
+                console.debug(`Deleted item for ${dirPath}/${fileName} storageType ${storageType}`);
+            } catch (error) {
+                console.error(`Error while deleting item for ${dirPath}/${fileName} storageType ${storageType}:`, error);
             }
 
         } else {
-            const item = result.reason;
+            // rejected -> masz w result.reason
+            // const item = result.reason;
         }
     }
 }
+
 
 function parseBool(value) {
     if (typeof value === 'boolean') {
@@ -185,18 +198,39 @@ function unflattenObject(data) {
     return result;
 }
 
-async function saveMetaTags(imageProcessing){
-    if(META_TAGS){
-        try{
-            const json = imageProcessing.toJSON();
-            const jsonStr = JSON.stringify(json); // konwertuje obiekt na string JSON
-            const bufor = Buffer.from(jsonStr); // tworzy bufor z stringa JSON
-            return await new StorageManagerV(imageProcessing.outputStorage, bufor, imageProcessing.filePathWithoutFileName, 'metatags.json', null, 'application/json').save();
-        }  catch (error){
-            throw new Error(`Error in saveMetaTags: `, error);
+// async function saveMetaTags(imageProcessing){
+//     if(META_TAGS){
+//         try{
+//             const json = imageProcessing.toJSON();
+//             const jsonStr = JSON.stringify(json); // konwertuje obiekt na string JSON
+//             const bufor = Buffer.from(jsonStr); // tworzy bufor z stringa JSON
+//             return await new StorageManagerV(imageProcessing.outputStorage, bufor, imageProcessing.filePathWithoutFileName, 'metatags.json', null, 'application/json').save();
+//         }  catch (error){
+//             throw new Error(`Error in saveMetaTags: `, error);
+//
+//         }
+//     }
+// }
 
-        }
-    }
+async function saveMetaTags(imageProcessing){
+    if (!META_TAGS) return;
+
+    const jsonStr = JSON.stringify(imageProcessing.toJSON());
+    const bufor = Buffer.from(jsonStr);
+
+    const metaStorage = imageProcessing.outputStorage === 'stream'
+        ? 'local'
+        : imageProcessing.outputStorage;
+
+    return await new StorageManagerV(
+        metaStorage,
+        bufor,
+        imageProcessing.filePathWithoutFileName,
+        'metatags.json',
+        null,
+        'application/json',
+        null
+    ).save();
 }
 
 export {
