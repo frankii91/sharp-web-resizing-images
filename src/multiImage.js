@@ -15,7 +15,7 @@ import {imagePreProcess, debugPreProces} from "./imageProcess.js";
 
 const router = express.Router();
 
-const dddd = `{
+const testData = `{
   "loaderTyp": "url",
   "imagePath": "https://i-meble.eu/images/homeslider/1493-homeslider/wrzesniowa-promocja-mebel-bos-do-20.jpg",
   "outputResize": [{
@@ -81,12 +81,14 @@ router.get('/', async (req, res)=>
 {
     console.debug("/multi");
     try {
-        let imageProcessing ;
-        const parsedData = JSON.parse(dddd);
-        imageProcessing  = new ImageProcessingRequest(parsedData);
+        const data = (req.body && Object.keys(req.body).length)
+            ? req.body
+            : JSON.parse(testData);
+
+        const imageProcessing = new ImageProcessingRequest(data);
 
         await debugPreProces(req, imageProcessing);
-        const { promises, savedFiles } = await imagePreProcess(imageProcessing);
+        const { promises, savedFiles } = await imagePreProcess(imageProcessing, res);
         promises.push(saveMetaTags(imageProcessing));
 
         try {

@@ -87,8 +87,9 @@ async function processPromises(promises, res, outputStorage) {
 async function withdrawalPromises(results) {
     for (const result of results) {
         if (result.status === 'fulfilled' && result.value && typeof result.value === 'object') {
-            const { storageType, dirPath, fileName } = result.value || {};
+            if (result.value.status === 'queued') continue;
 
+            const { storageType, dirPath, fileName } = result.value || {};
             // jeśli nie ma danych do kasowania (np. value === undefined) -> pomiń
             if (!storageType || !dirPath || !fileName) continue;
 
@@ -109,8 +110,9 @@ async function withdrawalPromises(results) {
 
 function parseBool(value) {
     if (typeof value === 'boolean') {
-        return true;
+        return value;
     }
+
     if (typeof value === 'string') {
         value = value.toLowerCase().trim();
         if (value === 'true' || value === '1') {
@@ -138,13 +140,13 @@ function validateBool(value, name) {
         return value;
     }
     if (typeof value === 'string') {
-        // value = value.toLowerCase().trim();
-        // if (value === 'true' || value === '1') {
-        //     return true;
-        // }
-        // if (value === 'false' || value === '0') {
-        //     return false;
-        // }
+        value = value.toLowerCase().trim();
+        if (value === 'true' || value === '1') {
+            return true;
+        }
+        if (value === 'false' || value === '0') {
+            return false;
+        }
         throw new Error(`Error parse to bool ${name} is string`);
     }
     if (typeof value === 'number') {

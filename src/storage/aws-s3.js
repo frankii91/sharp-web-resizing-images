@@ -12,6 +12,8 @@ import {AWS_ACCOUNT_ID, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_BUCKET, AW
 import crypto from 'crypto';
 import {flattenObject} from "../tools.js";
 
+const normalizeKey = (key) => String(key).replace(/^\/+/, "").replaceAll("\\", "/");
+
 async function Client(){
     try {
         return new S3Client({
@@ -21,6 +23,11 @@ async function Client(){
                 accessKeyId: AWS_ACCESS_KEY_ID,
                 secretAccessKey: AWS_SECRET_ACCESS_KEY,
             },
+
+            forcePathStyle: true,
+            requestChecksumCalculation: "WHEN_REQUIRED",
+            responseChecksumValidation: "WHEN_REQUIRED",
+
             logger: console
         });
     } catch (error) {
@@ -112,12 +119,15 @@ async function AWS_PutObject(stream, key, contentType, metaTags){
         const input = {
             Body: stream,
             Bucket: AWS_BUCKET, // required
-            Key: key.replace(/^\/+/, ""), // required
+            Key: normalizeKey(key), // required
             ContentType: contentType,
             ContentDisposition: 'inline', // aby wyswietlało w przeglądarce a 'attachment;filename="filename.json"'  aby przeglądarka pobierałą plik z nazwą...
             ContentLanguage: 'pl-PL',
             ContentMD5: md5sum,
+            // Metadata: metaTags
             Metadata: metaTags
+              ? Object.fromEntries(Object.entries(metaTags).map(([k, v]) => [k, String(v)]))
+              : undefined,
         };
 
         // Oczekiwanie na wysłanie obiektu do S3
@@ -141,7 +151,7 @@ async function AWS_DeleteObject(key='/images/homeslider/1476/gk-meble-cc.jpg'){
     try {
         const input = {
             Bucket: AWS_BUCKET, // required
-            Key: key.replace(/^\/+/, "") // required
+            Key: normalizeKey(key), // required
         };
 
         // Oczekiwanie na wysłanie obiektu do S3
@@ -165,8 +175,8 @@ async function AWS_DeleteObjects(keys=['/images/homeslider/1476/gk-meble-cc.jpg'
         const input = {
             Bucket: AWS_BUCKET, // required
             Delete: {
-                Objects: keys.map(key => ({ Key: key })),
-                Quiet: true
+                Objects: keys.map((k) => ({ Key: normalizeKey(k) })),  // <= ZAMIANA
+                Quiet: true,
             }
         };
         // Oczekiwanie na wysłanie obiektu do S3
@@ -175,8 +185,8 @@ async function AWS_DeleteObjects(keys=['/images/homeslider/1476/gk-meble-cc.jpg'
 
         return comres;
     } catch (error) {
-        console.error(`Błąd podczas usuwania z S3. Klucz: ${key}. Szczegóły:`, error);
-        throw new Error(`Błąd podczas usuwania z S3. Klucz: ${key}. Szczegóły: ${error}`);
+        console.error(`Błąd podczas usuwania z S3. Klucze: ${keys?.length}. Szczegóły:`, error);
+        throw new Error(`Błąd podczas usuwania z S3. Klucze: ${keys?.length}. Szczegóły: ${error}`);
     }
 }
 async function test(){

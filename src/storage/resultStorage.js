@@ -98,7 +98,7 @@ class FTPStorage extends Storage {
         return await FTPupload(this.buffer, this.dirPath, this.fileName);
     }
     async delete() {
-        return await FTPremove(this.buffer, this.dirPath, this.fileName);
+        return await FTPremove(this.dirPath, this.fileName);
     }
 }
 
@@ -110,12 +110,15 @@ class StreamStorage extends Storage {
         this.contentType = contentType;
     }
     async save() {
+        if (!this.response || this.response.headersSent) return;
+
         try {
             this.response.setHeader('Content-Type', this.contentType);
             this.response.end(this.buffer);
+
         } catch (error) {
-            console.error("Error while saving the buffer:", error);
-            this.response.status(500).json({ error: "Internal Server Error", message: error.message});
+            console.error("StreamStorage.save error:", error);
+            throw error; // ważne: bez res.status().json()
         }
     }
 }
@@ -148,13 +151,13 @@ class StorageManagerV {
                     buffer: this.buffer,
                     dirPath: this.dirPath,
                     fileName: this.fileName,
-                    response: this.response,
                     contentType: this.contentType,
                     metaTags: this.metaTags,
+                    // response: this.response, // nie zapisujemy response do bufora
                 });
 
                 return {
-                    storageType: this.outputStorage,   // ważne: żeby rollback nie wywalał
+                    storageType: this.outputStorage,
                     dirPath: this.dirPath,
                     fileName: this.fileName,
                     status: 'queued',
@@ -163,24 +166,50 @@ class StorageManagerV {
 
             switch (this.outputStorage) {
                 case 'local':
-                    this.storage = new LocalStorage(this.buffer, `${path.join(__dirImagesResultLocal, this.dirPath)}`, this.fileName);
+                    this.storage = new LocalStorage(
+                        this.buffer,
+                        path.join(__dirImagesResultLocal, this.dirPath),
+                        this.fileName
+                    );
                     break;
+
                 case 'mount':
-                    this.storage = new MountStorage(this.buffer, `${path.join(__dirImagesResultMount, this.dirPath)}`, this.fileName);
+                    this.storage = new MountStorage(
+                        this.buffer,
+                        path.join(__dirImagesResultMount, this.dirPath),
+                        this.fileName
+                    );
                     break;
+
                 case 'cr2':
-                    this.storage = new S3Storage(this.buffer, `${path.join(this.dirPath, this.fileName)}`, this.contentType, this.metaTags);
+                    this.storage = new S3Storage(
+                        this.buffer,
+                        path.join(this.dirPath, this.fileName),
+                        this.contentType,
+                        this.metaTags
+                    );
                     break;
+
                 case 'ftp':
-                    this.storage = new FTPStorage(this.buffer, `${path.join(FTP_BaseDirImagesResult, this.dirPath)}`, this.fileName);
+                    this.storage = new FTPStorage(
+                        this.buffer,
+                        path.join(FTP_BaseDirImagesResult, this.dirPath),
+                        this.fileName
+                    );
                     break;
+
                 case 'stream':
-                    // ochronnie:
                     if (!this.response || this.response.headersSent) {
-                        return { storageType: 'stream', dirPath: this.dirPath, fileName: this.fileName, status: 'skipped' };
+                        return {
+                            storageType: 'stream',
+                            dirPath: this.dirPath,
+                            fileName: this.fileName,
+                            status: 'skipped',
+                        };
                     }
                     this.storage = new StreamStorage(this.buffer, this.response, this.contentType);
                     break;
+
                 default:
                     throw new Error(`Unsupported output storage type: ${this.outputStorage}`);
             }
@@ -198,7 +227,7 @@ class StorageManagerV {
         } catch (error) {
             throw {
                 ...error,
-                storageType: this.getStorageType(),
+                storageType: this.outputStorage,
                 dirPath: this.dirPath,
                 fileName: this.fileName,
                 status: 'error',
@@ -212,36 +241,52 @@ class StorageManagerV {
         if (this.storage instanceof S3Storage) return 'cr2';
         if (this.storage instanceof FTPStorage) return 'ftp';
         if (this.storage instanceof StreamStorage) return 'stream';
-        // ... dla innych typów przechowywania ...
-        return 'unknown';
+        return this.outputStorage || 'unknown';
     }
 
+
     async delete() {
-        if (typeof this.storage.delete === 'function') {
-            try {
-                const result = await this.storage.delete();
-                // Jeśli operacja zakończyła się pomyślnie, dodaj dodatkowe informacje.
-                return {
-                    ...result,
-                    storageType: this.getStorageType(),
-                    dirPath: this.dirPath,
-                    fileName: this.fileName,
-                    status: 'ok'
-                };
-            } catch (error) {
-                // Przechwycenie błędu, dodanie dodatkowych informacji i ponowne rzucenie błędu.
-                throw {
-                    ...error,
-                    storageType: this.getStorageType(),
-                    dirPath: this.dirPath,
-                    fileName: this.fileName,
-                    status: 'error'
-                };
-            }
-        } else {
-            throw new Error("Delete method not implemented for this storage type.");
+        switch (this.outputStorage) {
+            case 'local':
+                this.storage = new LocalStorage(null, `${path.join(__dirImagesResultLocal, this.dirPath)}`, this.fileName);
+                break;
+            case 'mount':
+                this.storage = new MountStorage(null, `${path.join(__dirImagesResultMount, this.dirPath)}`, this.fileName);
+                break;
+            case 'cr2':
+                this.storage = new S3Storage(null, `${path.join(this.dirPath, this.fileName)}`, null, null);
+                break;
+            case 'ftp':
+                this.storage = new FTPStorage(null, `${path.join(FTP_BaseDirImagesResult, this.dirPath)}`, this.fileName);
+                break;
+            case 'stream':
+                // nie ma czego usuwać
+                return { storageType: 'stream', dirPath: this.dirPath, fileName: this.fileName, status: 'skipped' };
+            default:
+                throw new Error(`Unsupported output storage type: ${this.outputStorage}`);
+        }
+
+        try {
+            const result = await this.storage.delete();
+            const resultObj = (result && typeof result === 'object') ? result : {};
+            return {
+                ...resultObj,
+                storageType: this.getStorageType(),
+                dirPath: this.dirPath,
+                fileName: this.fileName,
+                status: 'ok',
+            };
+        } catch (error) {
+            throw {
+                ...error,
+                storageType: this.outputStorage,
+                dirPath: this.dirPath,
+                fileName: this.fileName,
+                status: 'error',
+            };
         }
     }
+
 }
 export {
     StorageManagerV

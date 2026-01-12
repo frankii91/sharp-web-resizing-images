@@ -43,53 +43,44 @@ router.get('/', async (req, res)=>
     }
 });
 
-
 function createImageProcessingRequest(data) {
-    const loaderTyp = data.loaderTyp || 'local';
+    // 1) input
+    const loaderTyp = data.loaderTyp ?? 'local';
     const imagePath = data.imagePath;
-    const outputStorage = data.outputStorage || 'local';
+    const outputStorage = data.outputStorage ?? 'local';
 
-    // Twórz obiekt ResizeConfig tylko, jeśli dostępne są odpowiednie parametry
+    // 2) resize (w /one obsługujemy max 1 resize)
+    const hasResize = data.outputResize != null && String(data.outputResize).trim() !== '';
+    const outputResize = hasResize ? [new ResizeConfig(data)] : null;
 
-    const outputResize = data.outputResize ? [new ResizeConfig(data)] : null;
+    // 3) format (w /one wybieramy 1 format)
+    const format = (data.outputFormat ?? 'jpg').toLowerCase();
 
-    // Twórz obiekt AvifConfig tylko, jeśli dostępne są odpowiednie parametry
-    // const avifConfig = data.outputFormat?.avif ? new AvifConfig(data.outputFormat.avif) : null;
-    // const avifConfig = data.outputFormat === 'avif' ? new AvifConfig() : null;
-    const avifConfig = data.outputFormat === 'avif' ? new AvifConfig(data) : null;
-
-    // Twórz obiekt WebpConfig tylko, jeśli dostępne są odpowiednie parametry
-    const webpConfig = data.outputFormat  === 'webp' ? new WebpConfig(data) : null;
-
-    // Twórz obiekt JpgConfig tylko, jeśli dostępne są odpowiednie parametry
-    const jpgConfig = data.outputFormat  === 'jpg' ? new JpgConfig(data) : null;
-
-    // Tworzenie obiektu `outputFormat` tylko z istniejącymi konfiguracjami
-    let outputFormat = {};
-    if (avifConfig) {
-        outputFormat.avif = avifConfig;
-    } else if (webpConfig) {
-        outputFormat.webp = webpConfig;
-    } else if (jpgConfig) {
-        outputFormat.jpg = jpgConfig;
-    } else {
-        // Jeśli nie ma żadnych konfiguracji, użyj domyślnie konfiguracji `jpg`
-        outputFormat.jpg = new JpgConfig({});
+    // 4) config dla formatu
+    const outputFormat = {};
+    switch (format) {
+        case 'avif':
+            outputFormat.avif = new AvifConfig(data);
+            break;
+        case 'webp':
+            outputFormat.webp = new WebpConfig(data);
+            break;
+        case 'jpg':
+        default:
+            outputFormat.jpg = new JpgConfig(data);
+            break;
     }
 
-    // Tworzenie obiektu `ImageProcessingRequest`
-    const imageProcessingRequestData = {
+    // 5) request
+    return new ImageProcessingRequest({
         loaderTyp,
         imagePath,
         outputStorage,
         outputResize,
         outputFormat,
-    };
-
-    const imageProcessingRequest = new ImageProcessingRequest(imageProcessingRequestData);
-
-    return imageProcessingRequest;
+    });
 }
+
 
 
 

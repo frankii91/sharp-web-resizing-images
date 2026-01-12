@@ -22,9 +22,9 @@ async function imageProcessFor(imageProcessing, res, sharpStream, outputFormat, 
         let file;
         let buffer;
         let metaTags = {
-            resizeConfig: resizeConfig.toJSON(),
+            resizeConfig: resizeConfig ? resizeConfig.toJSON() : null,
             formatConfig: formatConfig.toJSON(),
-            outputFormat: outputFormat
+            outputFormat
         };
         const flattenedMetaTags = flattenObject(metaTags);
 
@@ -147,7 +147,9 @@ function debugPreProces(req, imageProcessing){
         }
 
         const formats = Object.keys(imageProcessing.outputFormat);
-        for (let format of formats) {
+        const listFormats = isStream ? [formats[0]] : formats;
+
+        for (let format of listFormats) {
             const formatConfig = imageProcessing.outputFormat[format];
             const keys = Object.keys(formatConfig);
             for (const configKey of keys) {

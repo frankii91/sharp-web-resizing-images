@@ -2,16 +2,9 @@ import express from 'express';
 const router = express.Router();
 
 
-router.get('/', async (req, res)=>
-{
+router.get('/', (req, res) => {
     console.log("/status");
-    try {
-        return res.status(200).send("STATUS OK");
-    } catch (error) {
-        console.error("Internal Server Error", error);
-        return res.status(500).json({ error: "Internal Server Error", message: error.message});
-    }
-
+    return res.status(200).send("STATUS OK");
 });
 
 export default router;

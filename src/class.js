@@ -51,9 +51,9 @@ class ResizeConfig extends BaseClass {
         this.position = data.position || 'center';
         this.background = data.background || 'rgb(255,255,255)';
         this.kernel = data.kernel || 'lanczos3';
-        this.withoutEnlargement = data.withoutEnlargement || false;
-        this.withoutReduction = data.withoutReduction || false;
-        this.fastShrinkOnLoad = data.fastShrinkOnLoad || true;
+        this.withoutEnlargement = data.withoutEnlargement ?? false;
+        this.withoutReduction = data.withoutReduction ?? false;
+        this.fastShrinkOnLoad = data.fastShrinkOnLoad ?? true;
         this.addName = data.addName || '';
         this.addNameWithSuffix = this.addName &&  this.addName.trim() !== '' ? `-${this.addName}` : '';
         this.validateData();
@@ -150,7 +150,7 @@ class AvifConfig extends BaseClass {
         super();
         // this.PROPERTIES_TO_OMIT = new Set([...this.PROPERTIES_TO_OMIT, 'destinationDirLocal', 'destinationDirMount']);
         this.quality = data.quality || 50;
-        this.lossless = data.lossless || false;
+        this.lossless = data.lossless ?? false;
         this.effort = data.effort || 4;
         this.chromaSubsampling = data.chromaSubsampling || '4:4:4';
         this.validateData();
@@ -189,16 +189,16 @@ class WebpConfig extends BaseClass {
         // this.PROPERTIES_TO_OMIT = new Set([...this.PROPERTIES_TO_OMIT, 'destinationDirLocal', 'destinationDirMount']);
         this.quality = data.quality || 80;
         this.alphaQuality = data.alphaQuality || 100;
-        this.lossless = data.lossless || false;
-        this.nearLossless = data.nearLossless || false;
-        this.smartSubsample = data.smartSubsample || false;
+        this.lossless = data.lossless ?? false;
+        this.nearLossless = data.nearLossless ?? false;
+        this.smartSubsample = data.smartSubsample ?? false;
         this.preset = data.preset || 'default';
         this.effort = data.effort || 4;
         this.loop = data.loop || 0;
         this.delay = data.delay || 100;
-        this.minSize = data.minSize || false;
-        this.mixed = data.mixed || false;
-        this.force = data.force || true;
+        this.minSize = data.minSize ?? false;
+        this.mixed = data.mixed ?? false;
+        this.force = data.force ?? true;
         this.validateData();
     }
 
@@ -237,7 +237,7 @@ class WebpConfig extends BaseClass {
         this.validateDelay();
         this.minSize = validateBool(this.minSize, "webp.minSize");
         this.mixed = validateBool(this.mixed, "webp.mixed");
-        this.force = validateBool(this.force, "webp.force");validateBool
+        this.force = validateBool(this.force, "webp.force");
     }
     getSharpConfig() {
         return {
@@ -262,15 +262,15 @@ class JpgConfig extends BaseClass {
         super();
         // this.PROPERTIES_TO_OMIT = new Set([...this.PROPERTIES_TO_OMIT, 'destinationDirLocal', 'destinationDirMount']);
         this.quality = data.quality || 80;
-        this.progressive = data.progressive || false;
+        this.progressive = data.progressive ?? false;
         this.chromaSubsampling = data.chromaSubsampling || '4:2:0';
-        this.optimiseCoding = data.optimiseCoding || true;
-        this.mozjpeg = data.mozjpeg || false;
-        this.trellisQuantisation = data.trellisQuantisation || false;
-        this.overshootDeringing = data.overshootDeringing || false;
-        this.optimiseScans = data.optimiseScans || false;
+        this.optimiseCoding = data.optimiseCoding ?? true;
+        this.mozjpeg = data.mozjpeg ?? false;
+        this.trellisQuantisation = data.trellisQuantisation ?? false;
+        this.overshootDeringing = data.overshootDeringing ?? false;
+        this.optimiseScans = data.optimiseScans ?? false;
         this.quantisationTable = data.quantisationTable || 0;
-        this.force = data.force || true;
+        this.force = data.force ?? true;
         this.validateData();
     }
 
@@ -332,8 +332,8 @@ class ImageProcessingRequest extends BaseClass {
 
         if (Array.isArray(data.outputResize)) {
             this.outputResize = data.outputResize.map(item => new ResizeConfig(item));
-        } else if (data.outputResize === null) {
-            this.outputResize = data.outputResize;
+        } else if (data.outputResize == null) { // null lub undefined
+            this.outputResize = null;
         } else {
             throw new Error("Invalid data for outputResize");
         }
