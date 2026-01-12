@@ -41,13 +41,6 @@ expressJSDocSwagger(app)(options);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json({ limit: "10mb" }));
 
-// (opcjonalnie) szybki health/test endpoint
-app.get("/api/v1/albums", (req, res) => res.json([{ title: "track 1" }]));
-
-app.post("/upload33331111c", upload.single("avatar"), async (req, res) => {
-    return res.json("upload3333 Successfully!");
-});
-
 // routes
 app.use("/one", oneImage);
 app.use("/multi", multiImage);
