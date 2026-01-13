@@ -12,6 +12,7 @@ import multer from "multer";
 import expressJSDocSwagger from "express-jsdoc-swagger";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
+import "./swagger-types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

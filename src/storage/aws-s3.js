@@ -3,6 +3,7 @@ import {
     ListBucketsCommand,
     ListObjectsV2Command,
     GetObjectCommand,
+    HeadObjectCommand,
     PutObjectCommand,
     DeleteObjectCommand,
     DeleteObjectsCommand,
@@ -12,7 +13,28 @@ import {AWS_ACCOUNT_ID, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_BUCKET, AW
 import crypto from 'crypto';
 import {flattenObject} from "../tools.js";
 
-const normalizeKey = (key) => String(key).replace(/^\/+/, "").replaceAll("\\", "/");
+async function bodyToBuffer(body) {
+    if (!body) return Buffer.alloc(0);
+
+    // Node.js Readable (AWS SDK v3 w Node zwykle daje async iterable)
+    if (typeof body[Symbol.asyncIterator] === "function") {
+        const chunks = [];
+        for await (const chunk of body) {
+            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+        }
+        return Buffer.concat(chunks);
+    }
+
+    // Gdyby kiedyś Body było już Buffer/Uint8Array
+    if (Buffer.isBuffer(body)) return body;
+    if (body instanceof Uint8Array) return Buffer.from(body);
+
+    throw new Error("Unsupported GetObject Body type");
+}
+
+function normalizeKey(key) {
+    return String(key ?? "").replaceAll("\\", "/").replace(/^\/+/, "");
+}
 
 async function Client(){
     try {
@@ -189,6 +211,54 @@ async function AWS_DeleteObjects(keys=['/images/homeslider/1476/gk-meble-cc.jpg'
         throw new Error(`Błąd podczas usuwania z S3. Klucze: ${keys?.length}. Szczegóły: ${error}`);
     }
 }
+async function AWS_HeadObject(key) {
+    if (!key) throw new Error("key is required");
+    const client = await Client();
+
+    const input = {
+        Bucket: AWS_BUCKET,
+        Key: normalizeKey(key),
+    };
+
+    return await client.send(new HeadObjectCommand(input));
+}
+
+async function AWS_GetObject(key) {
+    if (!key) throw new Error("key is required");
+    const client = await Client();
+
+    const input = {
+        Bucket: AWS_BUCKET,
+        Key: normalizeKey(key),
+    };
+
+    const res = await client.send(new GetObjectCommand(input));
+    const buffer = await bodyToBuffer(res.Body);
+
+    return {
+        key: input.Key,
+        bytes: buffer.length,
+        contentType: res.ContentType,
+        contentLength: res.ContentLength,
+        eTag: res.ETag,
+        lastModified: res.LastModified,
+        metadata: res.Metadata,
+        buffer, // ✅ tu masz Buffer z plikiem
+    };
+}
+
+async function AWS_SignedGetUrl(key, expiresInSeconds = 300) {
+    if (!key) throw new Error("key is required");
+    const client = await Client();
+
+    const command = new GetObjectCommand({
+        Bucket: AWS_BUCKET,
+        Key: normalizeKey(key),
+    });
+
+    return await getSignedUrl(client, command, { expiresIn: expiresInSeconds });
+}
+
 async function test(){
     const command = new PutObjectCommand({
         Bucket: "test",
@@ -280,5 +350,8 @@ export {
     AWS_DeleteObjects,
     AWS_DeleteObject,
     AWS_PutObject,
+    AWS_HeadObject,
+    AWS_GetObject,
+    AWS_SignedGetUrl,
     test
 }

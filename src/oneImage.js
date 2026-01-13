@@ -17,6 +17,14 @@ import {imagePreProcess, debugPreProces} from "./imageProcess.js";
 
 const router = express.Router();
 
+/**
+ * GET /one
+ * @summary Process single image (query params) - one size + one format
+ * @tags image
+ * @param {ImageProcessingQuery} request.query.required
+ * @return {object} 200 - OK
+ * @return {object} 500 - Error
+ */
 router.get('/', async (req, res)=>
 {
     console.debug("/one");

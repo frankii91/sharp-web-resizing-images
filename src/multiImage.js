@@ -12,7 +12,7 @@ import {
 } from './class.js';
 
 import {imagePreProcess, debugPreProces} from "./imageProcess.js";
-
+import "./swagger-types.js";
 const router = express.Router();
 
 const testData = `{
@@ -77,7 +77,15 @@ const testData = `{
   "outputStorage": "local"
 }`;
 
-router.get('/', async (req, res)=>
+/**
+ * POST /multi
+ * @summary Process image (JSON body) - multiple sizes and formats
+ * @tags image
+ * @param {ImageProcessingBody} request.body.required - processing config
+ * @return {object} 200 - OK
+ * @return {object} 500 - Error
+ */
+router.post('/', async (req, res)=>
 {
     console.debug("/multi");
     try {

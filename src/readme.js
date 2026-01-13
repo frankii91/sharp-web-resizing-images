@@ -15,6 +15,13 @@ const converter = new showdown.Converter();
 let cachedHtml = null;
 let cachedMtimeMs = 0;
 
+/**
+ * GET /readme
+ * @summary Render README-HOWTO.MD as HTML
+ * @tags docs
+ * @return {string} 200 - HTML
+ * @return {string} 500 - Error
+ */
 router.get('/', async (req, res) => {
     try {
         const stat = await fs.stat(filePath);
